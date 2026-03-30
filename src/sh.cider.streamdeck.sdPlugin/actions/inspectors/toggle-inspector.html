@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Toggle Playback — CiderDeck</title>
+    <link rel="stylesheet" href="../../libs/css/sdpi.css">
+</head>
+<body>    
+    <div class="sdpi-wrapper">
+        <div class="sdpi-heading">Toggle Playback</div>
+        <div class="sdpi-description">Choose how this key looks while Cider is connected.</div>
+
+        <form id="property-inspector">
+            <div class="sdpi-item">
+                <div class="sdpi-item-label">Show album art</div>
+                <div class="sdpi-item-value">
+                    <input id="showAlbumArtOnToggle" type="checkbox" data-setting="showAlbumArtOnToggle" class="sdProperty sdCheckbox">
+                    <label for="showAlbumArtOnToggle"><span></span></label>
+                </div>
+            </div>
+            <div class="sdpi-item">
+                <div class="sdpi-item-label"> </div>
+                <div class="sdpi-item-value" style="font-size: 12px; opacity: 0.75;">
+                    When enabled, this key shows the current track artwork instead of the play/pause icons. Playback still toggles on press.
+                </div>
+            </div>
+
+            <div class="sdpi-heading" style="margin-top: 1rem;">Cider Config</div>
+            <div class="sdpi-description">Authorization and other keys share these global settings.</div>
+
+            <div class="sdpi-item" id="auth-settings" type="group">
+                <div class="sdpi-item-label">Authorization</div>
+                <div class="sdpi-item-group">
+                    <div class="sdpi-item">
+                        <div class="sdpi-item-label">RPC Key</div>
+                        <input id="authKey" type="password" data-global-setting="global.authorization.rpcKey" class="sdProperty sdpi-item-value" placeholder="Enter your RPC Key" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sdpi-item">
+                <button id="save-settings" class="sdpi-item-value">Save Settings</button>
+            </div>
+
+            <div class="sdpi-item">
+                <button id="reset-settings" class="sdpi-item-value">Reset Settings</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="../../libs/js/constants.js"></script>
+    <script src="../../libs/js/utils.js"></script>
+    <script src="../../libs/js/events.js"></script>
+    <script src="../../libs/js/api.js"></script>
+    <script src="../../libs/js/property-inspector.js"></script>
+    <script src="../../libs/js/dynamic-styles.js"></script>
+    <script src="../../libs/js/base-inspector.js"></script>
+    <script src="toggle-inspector.js"></script>
+</body>
+</html>

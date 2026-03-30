@@ -97,6 +97,69 @@ async function setAdaptiveData({ inLibrary, inFavorites }) {
 }
 
 /**
+ * Updates Toggle Playback key images: optional per-key album art or play/pause icons.
+ * @param {string|number} state - Playback state (e.g. "playing" / "paused")
+ * @param {Object} [attributes] - Optional now-playing attributes (may include artwork template)
+ */
+function applyToggleKeyDisplay(state, attributes) {
+    const utils = window.CiderDeckUtils;
+    const cacheManager = window.cacheManager;
+    if (!cacheManager) {
+        return;
+    }
+
+    let artworkUrl = cacheManager.get('artwork');
+    if (attributes?.artwork) {
+        artworkUrl = attributes.artwork?.url?.replace('{w}', attributes?.artwork?.width).replace('{h}', attributes?.artwork?.height);
+    }
+
+    const playing =
+        state === 'playing' || state === 1 || state === true;
+    const toggleIcon = playing ? 'pause.png' : 'play.png';
+    const iconPath = `actions/playback/assets/${toggleIcon}`;
+    const settingsByContext = window.ciderToggleKeySettings || {};
+
+    window.contexts.toggleAction?.forEach(context => {
+        const showArt = settingsByContext[context]?.showAlbumArtOnToggle === true;
+        if (showArt && artworkUrl && utils?.getBase64Image) {
+            utils.getBase64Image(artworkUrl).then(art64 => {
+                if (utils.setImage) {
+                    utils.setImage(context, art64, 0);
+                } else {
+                    $SD.setImage(context, art64, 0);
+                }
+            }).catch(() => {
+                if (utils.setImage) {
+                    utils.setImage(context, iconPath, 0);
+                } else {
+                    $SD.setImage(context, iconPath, 0);
+                }
+            });
+        } else if (utils?.setImage) {
+            utils.setImage(context, iconPath, 0);
+        } else {
+            $SD.setImage(context, iconPath, 0);
+        }
+    });
+}
+
+function refreshToggleKeyDisplayFromCache() {
+    const cacheManager = window.cacheManager;
+    if (!cacheManager) {
+        return;
+    }
+    const status = cacheManager.get('status');
+    const settings = window.ciderToggleKeySettings || {};
+    window.contexts.toggleAction?.forEach(context => {
+        if (settings[context]?.showAlbumArtOnToggle === true) {
+            $SD.setState(context, 0);
+        }
+    });
+    const state = status === 1 || status === true ? 'playing' : 'paused';
+    applyToggleKeyDisplay(state, {});
+}
+
+/**
  * Updates display data based on current playback state
  * @param {Object} data - The playback data
  */
@@ -240,17 +303,10 @@ async function setData({ state, attributes }) {
         logMessage += `Updated song: ${songName}; Artist: ${artistName}; Album: ${albumName}; `;
     }
 
-    const toggleIcon = state === "playing" ? 'pause.png' : 'play.png';
-
-    window.contexts.toggleAction?.forEach(context => {
-        const utils = window.CiderDeckUtils;
-        if (utils && utils.setImage) {
-            utils.setImage(context, `actions/playback/assets/${toggleIcon}`, 0);
-        } else {
-            $SD.setImage(context, `actions/playback/assets/${toggleIcon}`, 0);
-        }
-    });
-    logMessage += `State: ${state === "playing" ? "playing" : "paused"}`;
+    applyToggleKeyDisplay(state, attributes);
+    const playing =
+        state === 'playing' || state === 1 || state === true;
+    logMessage += `State: ${playing ? "playing" : "paused"}`;
 
     // Use our colorful logger instead of standard console.debug
     logger.debug(logMessage);
@@ -273,19 +329,31 @@ async function setPlaybackStatus(status) {
     if (typeof status === 'string') {
         status = status === 'playing' ? 1 : 0;
     }
-    
+    // Booleans from WebSocket/API — keep cache comparisons stable (1 !== true)
+    if (status === true) {
+        status = 1;
+    } else if (status === false) {
+        status = 0;
+    }
+
+    const settings = window.ciderToggleKeySettings || {};
+    const deckStateForToggle = (ctx) =>
+        settings[ctx]?.showAlbumArtOnToggle === true ? 0 : (status ? 1 : 0);
+    // Album-art keys stay on state 0: state 1 is the manifest "pause" image and Stream Deck reapplies it,
+    // which overrides a custom setImage while playing.
+
     const cacheManager = window.cacheManager;
     if (!cacheManager) {
         logger.warn("Cache manager not available, setting status directly");
         window.contexts.toggleAction?.forEach(context => {
-            $SD.setState(context, status ? 1 : 0);
+            $SD.setState(context, deckStateForToggle(context));
         });
         return;
     }
-    
+
     if (cacheManager.checkAndUpdate('status', status)) {
         window.contexts.toggleAction?.forEach(context => {
-            $SD.setState(context, status ? 1 : 0);
+            $SD.setState(context, deckStateForToggle(context));
         });
         logger.debug(`Updated playback status: ${status ? "playing" : "paused"}`);
     }
@@ -436,6 +504,7 @@ window.CiderDeckPlayback = {
     setData,
     setManualData,
     setPlaybackStatus,
+    refreshToggleKeyDisplayFromCache,
     updateRepeatMode,
     updateShuffleMode,
     goBack,

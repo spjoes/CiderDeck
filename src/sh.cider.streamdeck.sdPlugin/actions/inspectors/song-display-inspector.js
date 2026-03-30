@@ -23,16 +23,6 @@ baseInspector.initialize({
 // Add custom tab switching to ensure settings persist across functional tabs
 setupFunctionalTabSwitching();
 
-// Handle action-specific settings from Stream Deck
-$PI.onDidReceiveSettings((receivedData) => {
-    console.log('Received action settings:', receivedData);
-    baseInspector.loadActionSettings(receivedData);
-    
-    // Update our temp settings to keep UI state in sync
-    tempSettings = JSON.parse(JSON.stringify(baseInspector.actionSettings));
-    loadSettingsToUI(tempSettings);
-});
-
 /**
  * Handle settings updates from baseInspector
  * This is called when the action settings are received from Stream Deck

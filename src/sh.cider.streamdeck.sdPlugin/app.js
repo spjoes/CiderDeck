@@ -74,6 +74,9 @@ window.isConnected = false;
 // Ensure window.contexts is initialized
 window.contexts = window.contexts || {};
 
+// Per-key UI preference: Toggle Playback — show album art vs play/pause icons (see toggle-inspector)
+window.ciderToggleKeySettings = window.ciderToggleKeySettings || {};
+
 // ==========================================================================
 //  Initialization and Setup
 // ==========================================================================
@@ -106,6 +109,15 @@ Object.keys(actions).forEach(actionKey => {
         if (!window.contexts[actionKey].includes(context)) {
             window.contexts[actionKey].push(context);
             console.debug(`[DEBUG] [Context] Context added for ${actionKey}: ${context}`);
+        }
+
+        if (actionKey === 'toggleAction') {
+            window.ciderToggleKeySettings[context] = {
+                showAlbumArtOnToggle: !!payload.settings?.showAlbumArtOnToggle
+            };
+            if (window.isConnected) {
+                CiderDeckPlayback.refreshToggleKeyDisplayFromCache();
+            }
         }
         
         // Handle song display settings if this is a song name action
@@ -149,6 +161,10 @@ Object.keys(actions).forEach(actionKey => {
         if (index > -1) {
             window.contexts[actionKey].splice(index, 1);
             console.debug(`[DEBUG] [Context] Context removed for ${actionKey}: ${context}`);
+        }
+
+        if (actionKey === 'toggleAction') {
+            delete window.ciderToggleKeySettings[context];
         }
 
         if (actionKey === 'ciderPlaybackAction' || actionKey === 'albumArtAction') {
@@ -209,6 +225,17 @@ Object.keys(actions).forEach(actionKey => {
                 break;
         }
     });
+
+    if (actionKey === 'toggleAction') {
+        action.onDidReceiveSettings((jsn) => {
+            const ctx = jsn.context;
+            const s = jsn.payload?.settings || {};
+            window.ciderToggleKeySettings[ctx] = {
+                showAlbumArtOnToggle: !!s.showAlbumArtOnToggle
+            };
+            CiderDeckPlayback.refreshToggleKeyDisplayFromCache();
+        });
+    }
 
     if (actionKey === 'ciderPlaybackAction') {
         action.onDialDown(() => {
@@ -670,6 +697,12 @@ function setOfflineStates() {
             contexts.forEach(context => {
                 $SD.setState(context, offlineState);
                 console.debug(`[DEBUG] [Offline] Set ${actionKey} to offline state: ${offlineState}`);
+            });
+        }
+
+        if (actionKey === 'toggleAction') {
+            contexts.forEach(context => {
+                $SD.setImage(context, 'actions/assets/buttons/offline/media-play', 0);
             });
         }
 

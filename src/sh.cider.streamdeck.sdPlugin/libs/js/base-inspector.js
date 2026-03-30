@@ -89,17 +89,25 @@ class BaseInspector {
             console.log('Inspector connected:', jsn);
             this.actionId = jsn.uuid;
 
-            // Register for action-specific settings
+            const actionUUID = jsn.actionInfo?.action;
+            // Must use UUID (e.g. sh.cider.streamdeck.toggle.didReceiveSettings), not a single-arg callback shim
+            if (actionUUID) {
+                $PI.on(`${actionUUID}.${Events.didReceiveSettings}`, (receivedData) => {
+                    console.log('Received action settings:', receivedData);
+                    this.loadActionSettings(receivedData);
+                });
+                $PI.on(`${actionUUID}.${Events.propertyInspectorDidAppear}`, () => {
+                    $PI.getSettings();
+                });
+            } else {
+                console.warn('Property inspector: missing actionInfo.action; using bare didReceiveSettings');
+                $PI.on(Events.didReceiveSettings, (receivedData) => {
+                    this.loadActionSettings(receivedData);
+                });
+            }
+
             $PI.getSettings();
-
-            // Register for global settings
             $PI.getGlobalSettings();
-        });
-
-        // Handle action-specific settings
-        $PI.onDidReceiveSettings((receivedData) => {
-            console.log('Received action settings:', receivedData);
-            this.loadActionSettings(receivedData);
         });
 
         // Handle global settings

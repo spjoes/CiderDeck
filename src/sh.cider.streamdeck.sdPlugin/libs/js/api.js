@@ -335,17 +335,23 @@ class ELGSDApi extends ELGSDPlugin {
 
     /**
      * Registers a callback function for the didReceiveSettings event, which fires when calling getSettings
-     * @param {string} action
+     * @param {string} [action] - Action UUID; omit when passing only fn and actionInfo is already set (PI)
      * @param {function} fn
      */
     onDidReceiveSettings(action, fn) {
-        if(!fn) {
+        if (typeof action === 'function') {
+            fn = action;
+            action = this.actionInfo?.action ?? null;
+        }
+        if (!fn) {
             console.error(
                 'A callback function for the didReceiveSettings event is required for onDidReceiveSettings.'
             );
+            return this;
         }
 
-        this.on(`${action}.${Events.didReceiveSettings}`, (jsn) => fn(jsn));
+        const eventName = action ? `${action}.${Events.didReceiveSettings}` : Events.didReceiveSettings;
+        this.on(eventName, (jsn) => fn(jsn));
         return this;
     }
 }

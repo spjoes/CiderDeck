@@ -52,12 +52,6 @@ $PI.onDidReceiveGlobalSettings(({payload}) => {
     loadSettingsToUI();
 });
 
-// Handle action-specific settings
-$PI.onDidReceiveSettings((receivedData) => {
-    console.log('Received action settings:', receivedData);
-    baseInspector.loadActionSettings(receivedData);
-});
-
 /**
  * Initialize UI event listeners and functionality
  */
